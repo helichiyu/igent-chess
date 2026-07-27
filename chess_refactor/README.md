@@ -24,9 +24,41 @@ run_gui
 run_tests
 ```
 
+On this development machine, MATLAB R2024b is installed at:
+
+```text
+G:\Matlab2024b\bin\matlab.exe
+```
+
+From PowerShell, the test suite can be run with:
+
+```powershell
+& "G:\Matlab2024b\bin\matlab.exe" -batch "cd('E:\matlab\project\chess_refactor'); run_tests"
+```
+
 The front end is fully Chinese. Select a game mode, then click one of your pieces and click a green legal-move marker to move it.
 
 The AI first attempts to load `model5.mat` if you explicitly place a compatible model in this directory. Without a model it uses a deterministic material-and-capture heuristic, so the GUI remains usable.
+
+## AlphaZero Endgame Validation
+
+The `+alphazero` package implements a small AlphaZero-style validation experiment. It is intentionally limited to fixed positions with both generals and one red rook. It is not a full-game or tournament-strength engine.
+
+The pipeline uses the `xiangqi` rule engine, a fourteen-plane current-player state encoding, an 8100-action policy head, legal-action masking, PUCT MCTS, bounded replay data, and a shared policy-value network. The network is trained on MCTS root-visit policies and final game outcomes.
+
+Run a small experiment from the `chess_refactor` folder:
+
+```matlab
+history = train_endgame_alphazero
+```
+
+The default configuration requests GPU execution. Confirm GPU availability first with `canUseGPU`; set `useGPU` to `false` only for CPU debugging:
+
+```matlab
+history = train_endgame_alphazero(struct("useGPU", false, "iterations", 1));
+```
+
+Default artifacts are written to `chess_refactor/models/best_model.mat` and `chess_refactor/replay/`. These generated directories are excluded from source control. The GUI still uses its existing heuristic/model selector; AlphaZero GUI selection is intentionally deferred until the training loop has been evaluated beyond the small validation scope.
 
 ## Rule Coverage
 

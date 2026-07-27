@@ -1,0 +1,33 @@
+classdef TestAlphaZeroTraining < matlab.unittest.TestCase
+    methods (Test)
+        function modelEvaluationUsesBothColors(testCase)
+            settings = alphazero.config();
+            settings.useGPU = false;
+            settings.mctsSimulations = 1;
+            settings.maxPlies = 1;
+            settings.evaluationGamesPerPosition = 1;
+            positions = alphazero.initial_positions();
+            net = alphazero.create_network();
+            result = alphazero.evaluate_models(net, net, positions(4), settings);
+            testCase.verifyEqual(result.games, 2);
+            testCase.verifyGreaterThanOrEqual(result.score, 0);
+            testCase.verifyLessThanOrEqual(result.score, 1);
+        end
+
+        function minimalTrainingLoopWritesCheckpoint(testCase)
+            root = tempname;
+            mkdir(root);
+            cleanup = onCleanup(@()rmdir(root, "s")); %#ok<NASGU>
+            overrides = struct("useGPU", false, "iterations", 1, ...
+                "selfPlayGamesPerIteration", 1, "mctsSimulations", 1, ...
+                "maxPlies", 1, "trainingStepsPerIteration", 1, "batchSize", 1, ...
+                "evaluationGamesPerPosition", 1, "modelDirectory", fullfile(root, "models"), ...
+                "replayDirectory", fullfile(root, "replay"));
+            history = train_endgame_alphazero(overrides);
+            testCase.verifyEqual(numel(history), 1);
+            testCase.verifyGreaterThan(history.samples, 0);
+            testCase.verifyTrue(isfinite(history.loss));
+            testCase.verifyTrue(isfile(fullfile(root, "models", "best_model.mat")));
+        end
+    end
+end
