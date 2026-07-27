@@ -23,9 +23,14 @@ buffer = alphazero.load_replay_chunks(replayDirectory, settings.replayCapacity);
 completedIterations = load_completed_iterations(progressPath);
 history = repmat(struct("iteration", 0, "samples", 0, "loss", NaN, ...
     "evaluation", struct(), "selfPlay", struct()), settings.iterations, 1);
+fprintf("Training segment: %d iteration(s), resuming after iteration %d.\n", ...
+    settings.iterations, completedIterations);
 
 for localIteration = 1:settings.iterations
     iteration = completedIterations + localIteration;
+    iterationTimer = tic;
+    fprintf("\nIteration %d started (%d of %d in this segment).\n", ...
+        iteration, localIteration, settings.iterations);
     generated = struct("state", {}, "policy", {}, "legalMask", {}, ...
         "player", {}, "value", {}, "scenarioId", {});
     selfPlayMetrics = repmat(struct("scenarioId", "", "plies", 0, ...
@@ -35,9 +40,13 @@ for localIteration = 1:settings.iterations
         position = positions(mod(gameIndex - 1, numel(positions)) + 1);
         [samples, ~, selfPlayMetrics(gameIndex)] = alphazero.self_play(bestNet, position, settings);
         generated = [generated samples]; %#ok<AGROW>
+        fprintf("  Self-play %d/%d: %s | %d plies | %s\n", ...
+            gameIndex, settings.selfPlayGamesPerIteration, position.id, ...
+            selfPlayMetrics(gameIndex).plies, selfPlayMetrics(gameIndex).result);
     end
     buffer.add(generated);
     alphazero.save_replay_chunk(generated, replayDirectory, iteration);
+    fprintf("  Replay buffer: %d samples.\n", buffer.count());
 
     candidateNet = bestNet;
     optimizer = [];
@@ -47,16 +56,34 @@ for localIteration = 1:settings.iterations
         [candidateNet, optimizer, metrics] = alphazero.train_step( ...
             candidateNet, states, policies, values, masks, optimizer, settings);
     end
+    fprintf("  Training: %d step(s) | loss %.4f | policy %.4f | value %.4f\n", ...
+        settings.trainingStepsPerIteration, metrics.loss, metrics.policyLoss, metrics.valueLoss);
     evaluation = alphazero.evaluate_models(candidateNet, bestNet, positions, settings);
+    print_evaluation(evaluation);
     if evaluation.promoted
         bestNet = candidateNet;
         alphazero.save_model(bestNet, bestPath, ...
             checkpoint_metadata(settings, positions, iteration, evaluation));
+        fprintf("  Checkpoint promoted.\n");
+    else
+        fprintf("  Checkpoint retained.\n");
     end
     history(localIteration) = struct("iteration", iteration, "samples", buffer.count(), ...
         "loss", metrics.loss, "evaluation", evaluation, ...
         "selfPlay", summarize_self_play(selfPlayMetrics, positions));
     save_progress(progressPath, iteration, positions);
+    fprintf("Iteration %d completed in %.1f seconds.\n", iteration, toc(iterationTimer));
+end
+end
+
+function print_evaluation(evaluation)
+fprintf("  Evaluation: score %.3f | promoted %s\n", ...
+    evaluation.score, string(evaluation.promoted));
+for index = 1:numel(evaluation.perScenario)
+    item = evaluation.perScenario(index);
+    fprintf("    %s: score %.3f | W-D-L %d-%d-%d | %.1f plies | repetitions %d\n", ...
+        item.id, item.candidateScore, item.wins, item.draws, item.losses, ...
+        item.averagePlies, item.repetitionDraws);
 end
 end
 
