@@ -14,7 +14,12 @@ replayDirectory = resolve_output_directory(projectRoot, settings.replayDirectory
 bestPath = fullfile(modelDirectory, "best_model.mat");
 progressPath = fullfile(modelDirectory, "training_progress.mat");
 if isfile(bestPath)
-    [bestNet, ~] = alphazero.load_model(bestPath);
+    [bestNet, existingMetadata] = alphazero.load_model(bestPath);
+    if isfield(existingMetadata, "networkVersion") && ...
+            string(existingMetadata.networkVersion) == alphazero.fullgame_network_version()
+        error("alphazero:RetiredEndgameTraining", ...
+            "Use train_fullgame_alphazero; curated positions will return as a full-game mixture.");
+    end
 else
     bestNet = alphazero.create_network();
     alphazero.save_model(bestNet, bestPath, checkpoint_metadata(settings, positions, 0, struct()));
@@ -34,7 +39,8 @@ for localIteration = 1:settings.iterations
     generated = struct("state", {}, "policy", {}, "legalMask", {}, ...
         "player", {}, "value", {}, "scenarioId", {});
     selfPlayMetrics = repmat(struct("scenarioId", "", "plies", 0, ...
-        "result", "", "winner", 0, "repetitionDraw", false), ...
+        "result", "", "winner", 0, "repetitionDraw", false, ...
+        "mctsSimulations", 0, "networkVersion", ""), ...
         settings.selfPlayGamesPerIteration, 1);
     for gameIndex = 1:settings.selfPlayGamesPerIteration
         position = positions(mod(gameIndex - 1, numel(positions)) + 1);

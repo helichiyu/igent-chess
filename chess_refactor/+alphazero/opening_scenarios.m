@@ -1,0 +1,6 @@
+function scenarios = opening_scenarios()
+%OPENING_SCENARIOS Return the fixed standard-opening training position.
+scenarios = struct("id", "standard_opening", "board", xiangqi.new_board(), ...
+    "player", 1, "maxPlies", 300, ...
+    "source", struct("dataVersion", "opening_v1"));
+end

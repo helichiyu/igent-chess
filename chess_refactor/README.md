@@ -38,34 +38,41 @@ From PowerShell, the test suite can be run with:
 
 The front end is fully Chinese. Select a game mode, then click one of your pieces and click a green legal-move marker to move it.
 
-The AI first attempts to load `model5.mat` if you explicitly place a compatible model in this directory. Without a model it uses a deterministic material-and-capture heuristic, so the GUI remains usable.
+人机对局加载统一的 AlphaZero 模型 `models/best_model.mat`，并通过 MCTS 选择走法。模型尚未经过长训练时，走法只用于验证流程，不代表棋力。
 
-## AlphaZero Endgame Validation
+## AlphaZero Unified Full-Game Training
 
-The `+alphazero` package implements a small AlphaZero-style validation experiment. It is intentionally limited to fixed positions with both generals and one red rook. It is not a full-game or tournament-strength engine.
+`+alphazero` 现在以标准开局为训练分布，维护唯一正式检查点：`models/best_model.mat`。完整开局网络使用保留棋盘空间位置的残差结构，和早期全局平均池化的残局验证网络不兼容；旧验证产物已移动到 `models/archive/endgame_validation/`。
 
-The pipeline uses the `xiangqi` rule engine, a fourteen-plane current-player state encoding, an 8100-action policy head, legal-action masking, PUCT MCTS, bounded replay data, and a shared policy-value network. The network is trained on MCTS root-visit policies and final game outcomes.
+训练使用十四通道局面编码、8100 动作策略头、合法动作掩码、PUCT MCTS、有界回放池和胜负/和棋价值目标。当前只从标准开局自我对弈；精选残局将等完整开局流程稳定后按可控比例混入同一个模型。
 
-Run a small experiment from the `chess_refactor` folder:
-
-```matlab
-history = train_endgame_alphazero
-```
-
-The default configuration requests GPU execution. Confirm GPU availability first with `canUseGPU`; set `useGPU` to `false` only for CPU debugging:
+从 `chess_refactor` 目录运行一段训练：
 
 ```matlab
-history = train_endgame_alphazero(struct("useGPU", false, "iterations", 1));
+history = run_fullgame_segment(1)
 ```
 
-This machine's GPU requires MATLAB CUDA forward compatibility. The training entry point enables it automatically when needed. In an interactive MATLAB session, enable it before manually checking `canUseGPU`:
+训练可以跨天继续。每段会接续 `models/fullgame_progress.mat` 的轮次与随机状态，读取 `replay/fullgame/` 的回放，并将每轮指标追加到 `logs/fullgame/iteration_metrics.csv`。例如：
+
+```matlab
+history = run_fullgame_segment(20)
+```
+
+可用的分段预设为：
+
+```matlab
+settings = alphazero.fullgame_preset("short");
+history = train_fullgame_alphazero(settings);
+```
+
+`short`、`medium`、`overnight` 分别为 2、10、30 轮可恢复段；先用 `run_fullgame_smoke` 做小规模验证。默认请求 GPU；本机的 CUDA 前向兼容会由训练入口自动启用。如需人工检查，在交互式 MATLAB 中运行：
 
 ```matlab
 parallel.gpu.enableCUDAForwardCompatibility(true)
 canUseGPU
 ```
 
-Default artifacts are written to `chess_refactor/models/best_model.mat` and `chess_refactor/replay/`. These generated directories are excluded from source control. The GUI still uses its existing heuristic/model selector; AlphaZero GUI selection is intentionally deferred until the training loop has been evaluated beyond the small validation scope.
+一次 CPU 极小冒烟轮已经完成：1 局、每局 2 半回合、1 次 MCTS、1 个训练步，耗时 4.0 秒，损失 3.7212，开局对称评测得分 0.500。它只验证数据流、检查点和恢复机制，不能说明模型棋力。无界面 MATLAB 进程当前未识别 GPU，因此实际长训前请在交互式 MATLAB 中确认 `canUseGPU` 为真。
 
 ## Curated Endgame Challenges
 
@@ -91,7 +98,7 @@ Launch the endgame challenge interface with:
 run_endgame_challenge
 ```
 
-挑战界面加载 `models/best_model.mat`，提供九个精选残局，并使用 AlphaZero MCTS 作为 AI。玩家执红；八个残局以红方获胜为目标，`蚯蚓降龙`以和棋为目标。现有 `run_gui` 的普通对局模式不受影响。
+挑战界面加载同一个 `models/best_model.mat`，提供九个精选残局，并使用 AlphaZero MCTS 作为 AI。玩家执红；八个残局以红方获胜为目标，`蚯蚓降龙`以和棋为目标。普通 `run_gui` 人机模式也使用这个检查点。
 
 ## Rule Coverage
 
@@ -99,19 +106,9 @@ Implemented: normal opening, all piece movement rules, palace and river restrict
 
 Not implemented: official long-check/long-chase adjudication and formal move-clock draw rules.
 
-## AlphaZero Endgame Training Roadmap
+## Next Training Scope
 
-AlphaZero-style training remains a planned feature, but it will not begin with full-game self-play. Full Chinese-chess training has a very large state space and is impractical as a first target.
-
-The planned order is:
-
-1. Build a reproducible endgame-position format and a legal-move/game-result data pipeline.
-2. Train and evaluate separate small models on classical Chinese-chess endgames, starting with material-simple positions such as king-and-rook, king-and-cannon, king-and-pawn, and commonly studied practical endgame patterns.
-3. Add MCTS with policy and value heads, limited to one endgame category at a time.
-4. Verify against tablebase-like solved positions, curated classical examples, and fixed tactical test suites.
-5. Gradually combine validated endgame specialists before considering broader full-game self-play.
-
-The future training implementation should be added as new modules (for example `train_endgame_alphazero.m`) and must not reintroduce the old unlimited self-play data accumulation approach.
+Full-game self-play is now the active path. Before starting a long segment, confirm `canUseGPU` interactively, run `run_fullgame_smoke`, and inspect `logs/fullgame/iteration_metrics.csv`. The next planned model change is not a separate endgame model: it is a measured sampling ratio that mixes the curated endgames into the same unified replay distribution, with opening and endgame evaluation reported separately.
 
 ## Important Rule
 

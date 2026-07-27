@@ -35,7 +35,8 @@ status = uicontrol(fig, "Style", "text", "Position", [620 145 235 280], ...
     "HorizontalAlignment", "left", "BackgroundColor", get(fig, "Color"), ...
     "FontSize", 11, "String", "请选择残局后开始挑战。");
 
-state = struct("challenge", [], "net", [], "settings", [], "selected", zeros(0, 2), ...
+state = struct("challenge", [], "net", [], "settings", [], "metadata", struct(), ...
+    "selected", zeros(0, 2), ...
     "targetHandles", gobjects(0), "textHandles", textHandles, ...
     "squareHandles", squareHandles, "status", status);
 guidata(fig, state);
@@ -47,17 +48,18 @@ guidata(fig, state);
             return;
         end
         try
-            [net, ~] = alphazero.load_model(modelPath);
-            settings = alphazero.config();
+            [net, metadata, settings] = alphazero.load_unified_model();
             alphazero.prepare_execution(settings);
         catch exception
-            set(status, "String", "模型加载失败：" + string(exception.message));
+            %#ok<NASGU>
+            set(status, "String", "统一模型加载失败，请检查 models/best_model.mat。");
             return;
         end
         data = guidata(fig);
         data.challenge = alphazero.new_challenge_state(scenarios(index));
         data.net = net;
         data.settings = settings;
+        data.metadata = metadata;
         data.selected = zeros(0, 2);
         data.targetHandles = gobjects(0);
         guidata(fig, data);
@@ -127,14 +129,14 @@ guidata(fig, state);
         if data.challenge.isOver
             return;
         end
-        set(status, "String", "AI 正在使用 MCTS 搜索...");
+        set(status, "String", "电脑正在使用蒙特卡洛树搜索...");
         drawnow;
         [move, ~] = alphazero.mcts_search(data.net, data.challenge, data.settings);
         if isempty(move)
-            finish_turn("AI");
+            finish_turn("统一模型搜索");
             return;
         end
-        commit_move(move, "AlphaZero MCTS");
+        commit_move(move, "统一模型搜索");
     end
 
     function commit_move(move, source)
@@ -203,11 +205,12 @@ guidata(fig, state);
         else
             side = "红方";
             if data.challenge.player == -1, side = "黑方"; end
-            message = sprintf("%s\n目标：%s\n回合：%d/%d\n轮到：%s", ...
+            message = sprintf("%s\n目标：%s\n回合：%d/%d\n轮到：%s\n模型：%s", ...
                 data.challenge.scenario.name, goal_text(data.challenge.scenario.expectedResult), ...
-                data.challenge.ply, data.challenge.maxPlies, side);
+                data.challenge.ply, data.challenge.maxPlies, side, ...
+                data.metadata.networkVersion);
             if outcome.inCheck, message = message + "（被将军）"; end
-            if source == "AlphaZero MCTS", message = message + "\nAI：AlphaZero MCTS"; end
+            if source == "统一模型搜索", message = message + "\n电脑：统一模型搜索"; end
         end
         set(status, "String", message);
         drawnow;

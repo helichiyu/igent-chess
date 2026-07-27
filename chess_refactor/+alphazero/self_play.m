@@ -52,7 +52,17 @@ for index = 1:numel(samples)
 end
 metrics = struct("scenarioId", scenario_id(position), "plies", state.ply, ...
     "result", outcome.result, "winner", outcome.winner, ...
-    "repetitionDraw", outcome.result == "threefold_repetition");
+    "repetitionDraw", outcome.result == "threefold_repetition", ...
+    "mctsSimulations", settings.mctsSimulations, ...
+    "networkVersion", network_version(settings));
+end
+
+function version = network_version(settings)
+if isfield(settings, "networkVersion")
+    version = string(settings.networkVersion);
+else
+    version = "endgame_validation_v1";
+end
 end
 
 function plies = maximum_plies(position, settings)

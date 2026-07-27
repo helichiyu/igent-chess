@@ -48,7 +48,16 @@ for scenarioIndex = 1:numel(scenarios)
 end
 result = struct("score", score / games, "games", games, ...
     "promoted", meets_all_thresholds(perScenario, settings), ...
-    "perScenario", perScenario);
+    "perScenario", perScenario, "mctsSimulations", settings.mctsSimulations, ...
+    "networkVersion", network_version(settings));
+end
+
+function version = network_version(settings)
+if isfield(settings, "networkVersion")
+    version = string(settings.networkVersion);
+else
+    version = "endgame_validation_v1";
+end
 end
 
 function promoted = meets_all_thresholds(perScenario, settings)

@@ -33,7 +33,8 @@ status = uicontrol(fig, "Style", "text", "Position", [515 150 210 230], ...
 state = struct("board", xiangqi.new_board(), "player", 1, "mode", "human", ...
     "humanPlayer", 0, "selected", zeros(0, 2), "targetHandles", gobjects(0), ...
     "textHandles", textHandles, "squareHandles", squareHandles, "status", status, ...
-    "positionCounts", new_counts(), "isOver", false, "lastMove", zeros(0, 4));
+    "positionCounts", new_counts(), "ply", 0, "isOver", false, "lastMove", zeros(0, 4), ...
+    "net", [], "settings", [], "modelMetadata", struct());
 guidata(fig, state);
 reset_game("human");
 
@@ -51,6 +52,7 @@ reset_game("human");
         data.targetHandles = gobjects(0);
         data.positionCounts = new_counts();
         data.positionCounts(char(xiangqi.position_key(data.board, data.player))) = 1;
+        data.ply = 0;
         data.isOver = false;
         data.lastMove = zeros(0, 4);
         if strcmp(mode, "ai_red")
@@ -59,6 +61,18 @@ reset_game("human");
             data.humanPlayer = -1;
         else
             data.humanPlayer = 0;
+        end
+        if mode ~= "human"
+            try
+                [data.net, data.modelMetadata, data.settings] = alphazero.load_unified_model();
+                alphazero.prepare_execution(data.settings);
+            catch exception
+                %#ok<NASGU>
+                data.isOver = true;
+                guidata(fig, data);
+                set(status, "String", "统一模型加载失败，请检查 models/best_model.mat。");
+                return;
+            end
         end
         guidata(fig, data);
         render();
@@ -112,7 +126,8 @@ reset_game("human");
         if data.isOver, return; end
         set(data.status, "String", "电脑正在思考...");
         drawnow;
-        [move, detail] = xiangqi.choose_move(data.board, data.player, "model5.mat");
+        [move, detail] = alphazero.select_unified_move(data.net, data.board, ...
+            data.player, data.positionCounts, data.ply, data.settings);
         if isempty(move)
             finish_turn();
             return;
@@ -121,12 +136,13 @@ reset_game("human");
     end
 
     function commit_move(move, detail)
-        if nargin < 2, detail = struct("source", "human", "modelError", ""); end
+        if nargin < 2, detail = struct("networkVersion", ""); end
         data = guidata(fig);
         data.board = xiangqi.apply_move(data.board, move);
         data.lastMove = move;
         data.selected = zeros(0, 2);
         data.player = xiangqi.opponent(data.player);
+        data.ply = data.ply + 1;
         key = char(xiangqi.position_key(data.board, data.player));
         if isKey(data.positionCounts, key)
             data.positionCounts(key) = data.positionCounts(key) + 1;
@@ -138,19 +154,19 @@ reset_game("human");
     end
 
     function finish_turn(detail)
-        if nargin < 1, detail = struct("source", "", "modelError", ""); end
+        if nargin < 1, detail = struct("networkVersion", ""); end
         data = guidata(fig);
-        outcome = xiangqi.game_state(data.board, data.player, data.positionCounts);
+        outcome = fullgame_outcome(data);
         data.isOver = outcome.isOver;
         guidata(fig, data);
         render(detail, outcome);
     end
 
     function render(detail, outcome)
-        if nargin < 1, detail = struct("source", "", "modelError", ""); end
+        if nargin < 1, detail = struct("networkVersion", ""); end
         if nargin < 2
             data = guidata(fig);
-            outcome = xiangqi.game_state(data.board, data.player, data.positionCounts);
+            outcome = fullgame_outcome(data);
         end
         data = guidata(fig);
         clear_targets(data);
@@ -193,7 +209,9 @@ reset_game("human");
             message = sprintf("轮到%s走棋", side);
             if outcome.inCheck, message = message + "（被将军）"; end
             if ~isempty(data.lastMove), message = message + "\n已完成上一步走棋"; end
-            if detail.source == "heuristic", message = message + "\n电脑：启发式策略"; end
+            if data.mode ~= "human"
+                message = message + "\n电脑：统一 AlphaZero 模型";
+            end
         end
         set(data.status, "String", message);
         drawnow;
@@ -207,6 +225,16 @@ reset_game("human");
             guidata(fig, data);
         end
     end
+end
+
+function outcome = fullgame_outcome(data)
+maxPlies = 300;
+if ~isempty(data.settings)
+    maxPlies = data.settings.maxPlies;
+end
+state = struct("board", data.board, "player", data.player, ...
+    "positionCounts", data.positionCounts, "ply", data.ply, "maxPlies", maxPlies);
+outcome = alphazero.game_state(state);
 end
 
 function result = belongs_to_player(piece, player)
@@ -228,6 +256,8 @@ switch string(result)
         text = "困毙";
     case "threefold_repetition"
         text = "三次重复局面";
+    case "max_plies"
+        text = "达到最大回合数";
     otherwise
         text = result;
 end
