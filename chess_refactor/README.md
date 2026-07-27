@@ -77,6 +77,14 @@ These are curated scenarios rather than claims of uniquely canonical historical 
 history = run_curated_smoke
 ```
 
+Training can be split across multiple sessions. Each segment reuses `models/best_model.mat`, the bounded replay chunks, and `models/training_progress.mat`; replay file numbering and iteration numbers continue rather than restarting. For example, run a short segment today and another tomorrow:
+
+```matlab
+history = run_curated_segment(20)
+```
+
+On this machine, a GPU benchmark using nine games, four MCTS simulations per move, a 20-ply cap, one training step, and one evaluation game per scenario took 23.6 seconds end-to-end. It completed 105 self-play plies, or about 4.46 plies per second. This measures the current small-network implementation; use it to choose segment length, not as a chess-strength result.
+
 ## Rule Coverage
 
 Implemented: normal opening, all piece movement rules, palace and river restrictions, horse-leg and elephant-eye blocking, cannon screens, flying generals, self-check prevention, checkmate/stalemate detection, captured-general compatibility, and threefold repetition detection.

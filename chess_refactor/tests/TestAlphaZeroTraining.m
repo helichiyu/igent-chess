@@ -33,5 +33,23 @@ classdef TestAlphaZeroTraining < matlab.unittest.TestCase
             testCase.verifyEqual(metadata.scenarioDataVersion, "curated-v1");
             testCase.verifyEqual(numel(metadata.scenarioIds), 9);
         end
+
+        function trainingResumesWithContinuousIterationNumbers(testCase)
+            root = tempname;
+            mkdir(root);
+            cleanup = onCleanup(@()rmdir(root, "s")); %#ok<NASGU>
+            overrides = struct("useGPU", false, "iterations", 1, ...
+                "selfPlayGamesPerIteration", 1, "mctsSimulations", 1, ...
+                "maxPlies", 1, "trainingStepsPerIteration", 1, "batchSize", 1, ...
+                "evaluationGamesPerPosition", 1, "modelDirectory", fullfile(root, "models"), ...
+                "replayDirectory", fullfile(root, "replay"));
+            first = train_endgame_alphazero(overrides);
+            second = train_endgame_alphazero(overrides);
+            testCase.verifyEqual(first.iteration, 1);
+            testCase.verifyEqual(second.iteration, 2);
+            testCase.verifyTrue(isfile(fullfile(root, "models", "training_progress.mat")));
+            testCase.verifyTrue(isfile(fullfile(root, "replay", "replay_000001.mat")));
+            testCase.verifyTrue(isfile(fullfile(root, "replay", "replay_000002.mat")));
+        end
     end
 end
