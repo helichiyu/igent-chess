@@ -6,17 +6,31 @@ This directory is a working copy of the original hand-written MATLAB Chinese che
 
 The original files in the parent directory are preserved for commemorative reasons and must not be modified. All repairs, refactoring, tests, and experimental changes belong only in this directory.
 
-## Contents
+## Current Implementation
 
-This copy contains the original MATLAB source files, saved models, documentation, and image assets as they existed when the working copy was created.
+Only the new implementation is retained here. The historical copied source files and model files were removed from this working directory; the commemorative originals remain unchanged in the parent directory.
 
-## Planned Repair Order
+- `run_gui.m`: graphical human-vs-human and human-vs-AI entry point.
+- `+xiangqi/`: board setup, movement rules, check detection, legal move filtering, game-state logic, and AI move selection.
+- `tests/`: `matlab.unittest` coverage for essential piece rules and illegal self-check moves.
+- `run_tests.m`: test entry point.
 
-1. Make the GUI and human-vs-AI flow stable.
-2. Complete legal Chinese-chess move validation and game-end rules.
-3. Connect the trained model to the GUI AI.
-4. Rework self-play and MCTS training into a testable implementation.
-5. Add tests, dependency notes, and maintainable project structure.
+## Running
+
+Open this directory as the MATLAB current folder, then run:
+
+```matlab
+run_gui
+run_tests
+```
+
+The AI first attempts to load `model5.mat` if you explicitly place a compatible model in this directory. Without a model it uses a deterministic material-and-capture heuristic, so the GUI remains usable.
+
+## Rule Coverage
+
+Implemented: normal opening, all piece movement rules, palace and river restrictions, horse-leg and elephant-eye blocking, cannon screens, flying generals, self-check prevention, checkmate/stalemate detection, captured-general compatibility, and threefold repetition detection.
+
+Not implemented: official long-check/long-chase adjudication and formal move-clock draw rules.
 
 ## Important Rule
 
