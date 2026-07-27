@@ -1,11 +1,11 @@
-function [samples, outcome] = self_play(net, position, settings)
+function [samples, outcome, metrics] = self_play(net, position, settings)
 %SELF_PLAY Generate one MCTS-guided game and labeled training samples.
 if nargin < 3 || isempty(settings)
     settings = alphazero.config();
 end
-state = alphazero.new_state(position.board, position.player, settings.maxPlies);
+state = alphazero.new_state(position.board, position.player, maximum_plies(position, settings));
 samples = struct("state", {}, "policy", {}, "legalMask", {}, ...
-    "player", {}, "value", {});
+    "player", {}, "value", {}, "scenarioId", {});
 root = [];
 
 while true
@@ -17,7 +17,8 @@ while true
     action = select_action(visitPolicy, state.ply, settings);
     sample = struct("state", alphazero.encode_state(state), ...
         "policy", visitPolicy, "legalMask", alphazero.legal_action_mask(state), ...
-        "player", state.player, "value", single(0));
+        "player", state.player, "value", single(0), ...
+        "scenarioId", scenario_id(position));
     samples(end + 1) = sample; %#ok<AGROW>
 
     edge = find(root.Actions == action, 1);
@@ -32,6 +33,14 @@ while true
     state = root.State;
 end
 
+function id = scenario_id(position)
+if isfield(position, "id")
+    id = string(position.id);
+else
+    id = "validation";
+end
+end
+
 for index = 1:numel(samples)
     if outcome.winner == 0
         samples(index).value = single(0);
@@ -40,6 +49,16 @@ for index = 1:numel(samples)
     else
         samples(index).value = single(-1);
     end
+end
+metrics = struct("scenarioId", scenario_id(position), "plies", state.ply, ...
+    "result", outcome.result, "winner", outcome.winner, ...
+    "repetitionDraw", outcome.result == "threefold_repetition");
+end
+
+function plies = maximum_plies(position, settings)
+plies = settings.maxPlies;
+if isfield(position, "maxPlies")
+    plies = min(plies, position.maxPlies);
 end
 end
 

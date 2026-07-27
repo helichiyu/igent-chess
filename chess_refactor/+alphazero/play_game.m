@@ -1,10 +1,15 @@
 function outcome = play_game(redNet, blackNet, position, settings)
 %PLAY_GAME Play one deterministic evaluation game from a fixed position.
-state = alphazero.new_state(position.board, position.player, settings.maxPlies);
+maxPlies = settings.maxPlies;
+if isfield(position, "maxPlies")
+    maxPlies = min(maxPlies, position.maxPlies);
+end
+state = alphazero.new_state(position.board, position.player, maxPlies);
 root = [];
 while true
     outcome = alphazero.game_state(state);
     if outcome.isOver
+        outcome.plies = state.ply;
         return;
     end
     net = redNet;

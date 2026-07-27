@@ -3,7 +3,7 @@ classdef ReplayBuffer < handle
     properties (SetAccess = private)
         Capacity
         Samples = struct("state", {}, "policy", {}, "legalMask", {}, ...
-            "player", {}, "value", {})
+            "player", {}, "value", {}, "scenarioId", {})
     end
 
     methods

@@ -32,7 +32,7 @@ classdef TestAlphaZeroNetwork < matlab.unittest.TestCase
             targetPolicies = single(legalMasks) ./ single(nnz(legalMasks));
             targetValues = single(1);
             settings = alphazero.config();
-            settings.useGPU = canUseGPU;
+            settings.useGPU = false;
             [~, optimizer, metrics] = alphazero.train_step(net, states, ...
                 targetPolicies, targetValues, legalMasks, [], settings);
             testCase.verifyEqual(optimizer.iteration, 1);

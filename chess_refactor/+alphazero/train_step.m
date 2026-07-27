@@ -8,9 +8,7 @@ if nargin < 7 || isempty(settings)
     settings = alphazero.config();
 end
 if settings.useGPU
-    if ~canUseGPU
-        error("alphazero:GPUUnavailable", "GPU execution was requested but no supported GPU is available.");
-    end
+    alphazero.prepare_execution(settings);
     states = gpuArray(states);
     targetPolicies = gpuArray(targetPolicies);
     targetValues = gpuArray(targetValues);

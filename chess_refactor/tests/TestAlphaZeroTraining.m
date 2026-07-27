@@ -6,12 +6,13 @@ classdef TestAlphaZeroTraining < matlab.unittest.TestCase
             settings.mctsSimulations = 1;
             settings.maxPlies = 1;
             settings.evaluationGamesPerPosition = 1;
-            positions = alphazero.initial_positions();
+            positions = alphazero.curated_scenarios();
             net = alphazero.create_network();
             result = alphazero.evaluate_models(net, net, positions(4), settings);
             testCase.verifyEqual(result.games, 2);
             testCase.verifyGreaterThanOrEqual(result.score, 0);
             testCase.verifyLessThanOrEqual(result.score, 1);
+            testCase.verifyEqual(result.perScenario.id, positions(4).id);
         end
 
         function minimalTrainingLoopWritesCheckpoint(testCase)
@@ -28,6 +29,9 @@ classdef TestAlphaZeroTraining < matlab.unittest.TestCase
             testCase.verifyGreaterThan(history.samples, 0);
             testCase.verifyTrue(isfinite(history.loss));
             testCase.verifyTrue(isfile(fullfile(root, "models", "best_model.mat")));
+            [~, metadata] = alphazero.load_model(fullfile(root, "models", "best_model.mat"));
+            testCase.verifyEqual(metadata.scenarioDataVersion, "curated-v1");
+            testCase.verifyEqual(numel(metadata.scenarioIds), 9);
         end
     end
 end

@@ -58,7 +58,24 @@ The default configuration requests GPU execution. Confirm GPU availability first
 history = train_endgame_alphazero(struct("useGPU", false, "iterations", 1));
 ```
 
+This machine's GPU requires MATLAB CUDA forward compatibility. The training entry point enables it automatically when needed. In an interactive MATLAB session, enable it before manually checking `canUseGPU`:
+
+```matlab
+parallel.gpu.enableCUDAForwardCompatibility(true)
+canUseGPU
+```
+
 Default artifacts are written to `chess_refactor/models/best_model.mat` and `chess_refactor/replay/`. These generated directories are excluded from source control. The GUI still uses its existing heuristic/model selector; AlphaZero GUI selection is intentionally deferred until the training loop has been evaluated beyond the small validation scope.
+
+## Curated Endgame Challenges
+
+The next training scope uses nine source-traceable, curated challenge positions: `七星聚会`, `马跃檀溪`, `炮炸两狼关`, `小征东`, `蚯蚓降龙`, `大九连环`, `带子入朝`, `征西`, and `野马操田`. Their coordinates and source commit are stored in `+alphazero/curated_scenarios.m` and the downloaded candidate data is retained under `references/classic_endgames/`.
+
+These are curated scenarios rather than claims of uniquely canonical historical layouts. The shared model trains across all admitted scenarios, while self-play and candidate evaluation retain separate metrics for each scenario. Run the short all-scenario GPU data-flow check with:
+
+```matlab
+history = run_curated_smoke
+```
 
 ## Rule Coverage
 

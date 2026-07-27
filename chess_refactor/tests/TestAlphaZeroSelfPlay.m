@@ -15,6 +15,7 @@ classdef TestAlphaZeroSelfPlay < matlab.unittest.TestCase
                 testCase.verifyEqual(sum(samples(index).policy), single(1), AbsTol=1e-6);
                 testCase.verifyTrue(all(ismember(samples(index).value, single([-1 0 1]))));
                 testCase.verifyTrue(all(samples(index).policy(~samples(index).legalMask) == 0));
+                testCase.verifyEqual(samples(index).scenarioId, "validation");
             end
         end
 
