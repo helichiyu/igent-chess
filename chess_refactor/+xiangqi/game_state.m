@@ -1,8 +1,10 @@
 function state = game_state(board, player, positionCounts)
 %GAME_STATE Describe whether play continues, is checkmate, stalemate, or draw.
 % POSITIONCOUNTS is optional and maps canonical board positions to occurrences.
-validateattributes(board, {"numeric"}, {"size", [10 9]});
-validateattributes(player, {"numeric"}, {"scalar", "member", [-1 1]});
+validateattributes(board, {'numeric'}, {'size', [10 9]});
+if ~isnumeric(player) || ~isscalar(player) || ~ismember(player, [-1 1])
+    error('xiangqi:InvalidPlayer', 'Player must be 1 (red) or -1 (black).');
+end
 state = struct("isOver", false, "result", "ongoing", "winner", 0, ...
     "inCheck", false, "legalMoves", zeros(0, 4));
 if ~any(board(:) == 1)

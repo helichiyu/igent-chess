@@ -1,6 +1,6 @@
 function run_gui()
-%RUN_GUI Start the refactored Chinese-chess GUI.
-fig = figure("Name", "Chinese Chess", "NumberTitle", "off", ...
+%RUN_GUI 启动重构版中国象棋图形界面。
+fig = figure("Name", "中国象棋", "NumberTitle", "off", ...
     "MenuBar", "none", "ToolBar", "none", "Position", [300 120 760 650], ...
     "WindowButtonDownFcn", @board_click, "Color", [0.94 0.90 0.80]);
 ax = axes("Parent", fig, "Position", [0.05 0.10 0.62 0.84], ...
@@ -12,22 +12,24 @@ squareHandles = gobjects(10, 9);
 for row = 1:10
     for col = 1:9
         squareHandles(row, col) = rectangle(ax, "Position", [col-.5 row-.5 1 1], ...
-            "FaceColor", "none", "EdgeColor", [0.35 0.20 0.10]);
+            "FaceColor", "none", "EdgeColor", [0.35 0.20 0.10], ...
+            "ButtonDownFcn", @board_click);
         textHandles(row, col) = text(ax, col, row, "", "HorizontalAlignment", "center", ...
-            "VerticalAlignment", "middle", "FontSize", 20, "FontWeight", "bold");
+            "VerticalAlignment", "middle", "FontSize", 20, "FontWeight", "bold", ...
+            "HitTest", "off");
     end
 end
-uicontrol(fig, "Style", "pushbutton", "String", "New human game", ...
+uicontrol(fig, "Style", "pushbutton", "String", "双人对局", ...
     "Position", [535 560 170 36], "Callback", @(~, ~)reset_game("human"));
-uicontrol(fig, "Style", "pushbutton", "String", "Play as red", ...
+uicontrol(fig, "Style", "pushbutton", "String", "人机对局（执红）", ...
     "Position", [535 510 170 36], "Callback", @(~, ~)reset_game("ai_red"));
-uicontrol(fig, "Style", "pushbutton", "String", "Play as black", ...
+uicontrol(fig, "Style", "pushbutton", "String", "人机对局（执黑）", ...
     "Position", [535 460 170 36], "Callback", @(~, ~)reset_game("ai_black"));
-uicontrol(fig, "Style", "pushbutton", "String", "Restart", ...
+uicontrol(fig, "Style", "pushbutton", "String", "重新开始", ...
     "Position", [535 410 170 36], "Callback", @(~, ~)reset_game(current_mode()));
 status = uicontrol(fig, "Style", "text", "Position", [515 150 210 230], ...
     "HorizontalAlignment", "left", "BackgroundColor", get(fig, "Color"), ...
-    "FontSize", 11, "String", "Choose a game mode.");
+    "FontSize", 11, "String", "请选择对局模式。");
 state = struct("board", xiangqi.new_board(), "player", 1, "mode", "human", ...
     "humanPlayer", 0, "selected", zeros(0, 2), "targetHandles", gobjects(0), ...
     "textHandles", textHandles, "squareHandles", squareHandles, "status", status, ...
@@ -108,7 +110,7 @@ reset_game("human");
     function perform_ai_move()
         data = guidata(fig);
         if data.isOver, return; end
-        set(data.status, "String", "AI is thinking...");
+        set(data.status, "String", "电脑正在思考...");
         drawnow;
         [move, detail] = xiangqi.choose_move(data.board, data.player, "model5.mat");
         if isempty(move)
@@ -175,22 +177,23 @@ reset_game("human");
             data.targetHandles = gobjects(size(targets, 1), 1);
             for index = 1:size(targets, 1)
                 data.targetHandles(index) = scatter(ax, targets(index, 2), targets(index, 1), 90, ...
-                    "filled", "MarkerFaceColor", [0.15 0.55 0.20], "MarkerEdgeColor", "w");
+                    "filled", "MarkerFaceColor", [0.15 0.55 0.20], "MarkerEdgeColor", "w", ...
+                    "HitTest", "off");
             end
             guidata(fig, data);
         end
         if outcome.isOver
-            if outcome.winner == 1, winner = "Red wins";
-            elseif outcome.winner == -1, winner = "Black wins";
-            else, winner = "Draw"; end
-            message = sprintf("%s\nReason: %s\nStart a new game to continue.", winner, outcome.result);
+            if outcome.winner == 1, winner = "红方胜利";
+            elseif outcome.winner == -1, winner = "黑方胜利";
+            else, winner = "和棋"; end
+            message = sprintf("%s\n结束原因：%s\n请点击“重新开始”继续。", winner, chinese_result(outcome.result));
         else
-            side = "Red";
-            if data.player == -1, side = "Black"; end
-            message = sprintf("%s to move", side);
-            if outcome.inCheck, message = message + " (in check)"; end
-            if ~isempty(data.lastMove), message = message + "\nLast move completed"; end
-            if detail.source == "heuristic", message = message + "\nAI: heuristic fallback"; end
+            side = "红方";
+            if data.player == -1, side = "黑方"; end
+            message = sprintf("轮到%s走棋", side);
+            if outcome.inCheck, message = message + "（被将军）"; end
+            if ~isempty(data.lastMove), message = message + "\n已完成上一步走棋"; end
+            if detail.source == "heuristic", message = message + "\n电脑：启发式策略"; end
         end
         set(data.status, "String", message);
         drawnow;
@@ -213,4 +216,19 @@ end
 
 function counts = new_counts()
 counts = containers.Map("KeyType", "char", "ValueType", "double");
+end
+
+function text = chinese_result(result)
+switch string(result)
+    case "captured_general"
+        text = "将（帅）被吃";
+    case "checkmate"
+        text = "将死";
+    case "stalemate"
+        text = "困毙";
+    case "threefold_repetition"
+        text = "三次重复局面";
+    otherwise
+        text = result;
+end
 end

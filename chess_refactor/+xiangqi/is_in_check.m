@@ -1,7 +1,9 @@
 function inCheck = is_in_check(board, player)
 %IS_IN_CHECK True when PLAYER's general is attacked in BOARD.
-validateattributes(board, {"numeric"}, {"size", [10 9]});
-validateattributes(player, {"numeric"}, {"scalar", "member", [-1 1]});
+validateattributes(board, {'numeric'}, {'size', [10 9]});
+if ~isnumeric(player) || ~isscalar(player) || ~ismember(player, [-1 1])
+    error('xiangqi:InvalidPlayer', 'Player must be 1 (red) or -1 (black).');
+end
 king = 1;
 if player == -1, king = 8; end
 [kingRow, kingCol] = find(board == king, 1);

@@ -1,7 +1,7 @@
 function nextBoard = apply_move(board, move)
 %APPLY_MOVE Apply one [sourceRow sourceCol targetRow targetCol] move.
-validateattributes(board, {"numeric"}, {"size", [10 9]});
-validateattributes(move, {"numeric"}, {"vector", "numel", 4, "integer"});
+validateattributes(board, {'numeric'}, {'size', [10 9]});
+validateattributes(move, {'numeric'}, {'vector', 'numel', 4, 'integer'});
 move = reshape(move, 1, []);
 if any(move([1 3]) < 1 | move([1 3]) > 10) || ...
         any(move([2 4]) < 1 | move([2 4]) > 9)

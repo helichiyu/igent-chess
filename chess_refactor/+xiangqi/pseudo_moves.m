@@ -1,7 +1,9 @@
 function moves = pseudo_moves(board, player)
 %PSEUDO_MOVES Return moves obeying piece movement rules before self-check filtering.
-validateattributes(board, {"numeric"}, {"size", [10 9]});
-validateattributes(player, {"numeric"}, {"scalar", "member", [-1 1]});
+validateattributes(board, {'numeric'}, {'size', [10 9]});
+if ~isnumeric(player) || ~isscalar(player) || ~ismember(player, [-1 1])
+    error('xiangqi:InvalidPlayer', 'Player must be 1 (red) or -1 (black).');
+end
 if player == 1
     locations = find(board >= 1 & board <= 7);
 else

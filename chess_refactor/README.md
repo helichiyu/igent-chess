@@ -24,6 +24,8 @@ run_gui
 run_tests
 ```
 
+The front end is fully Chinese. Select a game mode, then click one of your pieces and click a green legal-move marker to move it.
+
 The AI first attempts to load `model5.mat` if you explicitly place a compatible model in this directory. Without a model it uses a deterministic material-and-capture heuristic, so the GUI remains usable.
 
 ## Rule Coverage
@@ -31,6 +33,20 @@ The AI first attempts to load `model5.mat` if you explicitly place a compatible 
 Implemented: normal opening, all piece movement rules, palace and river restrictions, horse-leg and elephant-eye blocking, cannon screens, flying generals, self-check prevention, checkmate/stalemate detection, captured-general compatibility, and threefold repetition detection.
 
 Not implemented: official long-check/long-chase adjudication and formal move-clock draw rules.
+
+## AlphaZero Endgame Training Roadmap
+
+AlphaZero-style training remains a planned feature, but it will not begin with full-game self-play. Full Chinese-chess training has a very large state space and is impractical as a first target.
+
+The planned order is:
+
+1. Build a reproducible endgame-position format and a legal-move/game-result data pipeline.
+2. Train and evaluate separate small models on classical Chinese-chess endgames, starting with material-simple positions such as king-and-rook, king-and-cannon, king-and-pawn, and commonly studied practical endgame patterns.
+3. Add MCTS with policy and value heads, limited to one endgame category at a time.
+4. Verify against tablebase-like solved positions, curated classical examples, and fixed tactical test suites.
+5. Gradually combine validated endgame specialists before considering broader full-game self-play.
+
+The future training implementation should be added as new modules (for example `train_endgame_alphazero.m`) and must not reintroduce the old unlimited self-play data accumulation approach.
 
 ## Important Rule
 

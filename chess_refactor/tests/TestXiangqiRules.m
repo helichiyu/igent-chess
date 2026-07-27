@@ -6,9 +6,9 @@ classdef TestXiangqiRules < matlab.unittest.TestCase
             testCase.verifyEqual(nnz(board >= 8 & board <= 14), 16);
         end
 
-        function openingHasTwentyEightLegalMoves(testCase)
+        function openingHasFortyFourLegalMoves(testCase)
             moves = xiangqi.legal_moves(xiangqi.new_board(), 1);
-            testCase.verifyEqual(size(moves, 1), 28);
+            testCase.verifyEqual(size(moves, 1), 44);
         end
 
         function horseLegBlocksMove(testCase)
