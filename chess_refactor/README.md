@@ -85,6 +85,14 @@ history = run_curated_segment(20)
 
 On this machine, a GPU benchmark using nine games, four MCTS simulations per move, a 20-ply cap, one training step, and one evaluation game per scenario took 23.6 seconds end-to-end. It completed 105 self-play plies, or about 4.46 plies per second. This measures the current small-network implementation; use it to choose segment length, not as a chess-strength result.
 
+Launch the endgame challenge interface with:
+
+```matlab
+run_endgame_challenge
+```
+
+挑战界面加载 `models/best_model.mat`，提供九个精选残局，并使用 AlphaZero MCTS 作为 AI。玩家执红；八个残局以红方获胜为目标，`蚯蚓降龙`以和棋为目标。现有 `run_gui` 的普通对局模式不受影响。
+
 ## Rule Coverage
 
 Implemented: normal opening, all piece movement rules, palace and river restrictions, horse-leg and elephant-eye blocking, cannon screens, flying generals, self-check prevention, checkmate/stalemate detection, captured-general compatibility, and threefold repetition detection.
