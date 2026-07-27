@@ -1,2 +1,0 @@
-iteration,replay_samples,loss,policy_loss,value_loss,elapsed_seconds,evaluation_score,promoted,self_play_games,average_plies,max_plies_draws,repetition_draws,network_version,mcts_simulations
-1,2,3.721184,3.72112,6.338135e-05,4.0026457,0.5,1,1,2,1,0,fullgame_residual_spatial_v1,1
