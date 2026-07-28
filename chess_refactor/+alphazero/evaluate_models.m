@@ -11,6 +11,7 @@ perScenario = repmat(struct("id", "", "games", 0, "candidateScore", 0, ...
     "repetitionDraws", 0), numel(scenarios), 1);
 score = 0;
 games = 0;
+totalGames = 2 * settings.evaluationGamesPerPosition * numel(scenarios);
 for scenarioIndex = 1:numel(scenarios)
     scenario = scenarios(scenarioIndex);
     scenarioScore = 0;
@@ -20,6 +21,7 @@ for scenarioIndex = 1:numel(scenarios)
     plies = 0;
     repetitions = 0;
     for gameIndex = 1:settings.evaluationGamesPerPosition %#ok<NASGU>
+        fprintf("  评测 %d/%d：候选执红，正在搜索...\n", games + 1, totalGames);
         outcome = alphazero.play_game(candidateNet, bestNet, scenario, settings);
         [gameScore, won, drawn] = candidate_score(outcome, 1);
         scenarioScore = scenarioScore + gameScore;
@@ -29,6 +31,8 @@ for scenarioIndex = 1:numel(scenarios)
         plies = plies + outcome.plies;
         repetitions = repetitions + (outcome.result == "threefold_repetition");
         games = games + 1;
+        fprintf("    完成：%d 半回合，%s。\n", outcome.plies, result_text(outcome.result));
+        fprintf("  评测 %d/%d：候选执黑，正在搜索...\n", games + 1, totalGames);
         outcome = alphazero.play_game(bestNet, candidateNet, scenario, settings);
         [gameScore, won, drawn] = candidate_score(outcome, -1);
         scenarioScore = scenarioScore + gameScore;
@@ -38,6 +42,7 @@ for scenarioIndex = 1:numel(scenarios)
         plies = plies + outcome.plies;
         repetitions = repetitions + (outcome.result == "threefold_repetition");
         games = games + 1;
+        fprintf("    完成：%d 半回合，%s。\n", outcome.plies, result_text(outcome.result));
     end
     scenarioGames = 2 * settings.evaluationGamesPerPosition;
     perScenario(scenarioIndex) = struct("id", scenario.id, "games", scenarioGames, ...
@@ -45,6 +50,21 @@ for scenarioIndex = 1:numel(scenarios)
         "draws", draws, "losses", losses, "averagePlies", plies / scenarioGames, ...
         "repetitionDraws", repetitions);
     score = score + scenarioScore;
+end
+
+function text = result_text(result)
+switch string(result)
+    case "checkmate"
+        text = "将死";
+    case "stalemate"
+        text = "困毙";
+    case "threefold_repetition"
+        text = "三次重复和棋";
+    case "max_plies"
+        text = "达到步数上限和棋";
+    otherwise
+        text = string(result);
+end
 end
 result = struct("score", score / games, "games", games, ...
     "promoted", meets_all_thresholds(perScenario, settings), ...
