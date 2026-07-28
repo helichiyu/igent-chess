@@ -1,10 +1,13 @@
-function [move, visitPolicy, root] = mcts_search(net, state, settings, root)
+function [move, visitPolicy, root] = mcts_search(net, state, settings, root, addRootNoise)
 %MCTS_SEARCH Search one state with PUCT and a policy-value network.
 if nargin < 3 || isempty(settings)
     settings = alphazero.config();
 end
 if nargin < 4 || isempty(root)
     root = alphazero.MCTSNode(state);
+end
+if nargin < 5 || isempty(addRootNoise)
+    addRootNoise = false;
 end
 validateattributes(settings.mctsSimulations, {'numeric'}, {'scalar', 'integer', 'positive'});
 
@@ -16,6 +19,9 @@ if outcome.isOver
 end
 if ~root.Expanded
     [~, rootValue] = expand_node(root, net, settings.useGPU); %#ok<ASGLU>
+end
+if addRootNoise
+    apply_root_noise(root, settings);
 end
 
 for simulation = 1:settings.mctsSimulations
@@ -48,6 +54,19 @@ counts = root.VisitCounts;
 visitPolicy(root.Actions) = single(counts ./ sum(counts));
 [~, bestEdge] = max(counts);
 move = root.Moves(bestEdge, :);
+end
+
+function apply_root_noise(root, settings)
+if ~isfield(settings, "dirichletAlpha") || ~isfield(settings, "dirichletFraction")
+    error("alphazero:MissingExplorationSetting", ...
+        "Dirichlet exploration requires alpha and fraction settings.");
+end
+validateattributes(settings.dirichletAlpha, {'numeric'}, {'scalar', 'positive'});
+validateattributes(settings.dirichletFraction, {'numeric'}, {'scalar', '>=', 0, '<=', 1});
+noise = randg(settings.dirichletAlpha, numel(root.Priors), 1);
+noise = noise ./ sum(noise);
+root.Priors = single((1 - settings.dirichletFraction) .* double(root.Priors) + ...
+    settings.dirichletFraction .* noise);
 end
 
 function [policy, value] = expand_node(node, net, useGPU)

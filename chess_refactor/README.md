@@ -72,7 +72,7 @@ parallel.gpu.enableCUDAForwardCompatibility(true)
 canUseGPU
 ```
 
-一次 CPU 极小冒烟轮已经完成：1 局、每局 2 半回合、1 次 MCTS、1 个训练步，耗时 4.0 秒，损失 3.7212，开局对称评测得分 0.500。它只验证数据流、检查点和恢复机制，不能说明模型棋力。无界面 MATLAB 进程当前未识别 GPU，因此实际长训前请在交互式 MATLAB 中确认 `canUseGPU` 为真。
+当前实验使用根节点 Dirichlet 探索噪声、前 30 半回合按访问次数采样、64 次 MCTS、零和棋价值，以及 55% 的候选模型晋升线；评测和 GUI 不加探索噪声。此前陷入重复和棋的模型、回放与日志已删除，新的 GPU 冒烟轮从第 1 轮开始，耗时 7.3 秒、损失 3.6165、评测得分 0.500 且未晋升。它只验证数据流、检查点和恢复机制，不能说明模型棋力。
 
 ## Curated Endgame Challenges
 

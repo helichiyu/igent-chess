@@ -13,7 +13,8 @@ while true
     if outcome.isOver
         break;
     end
-    [~, visitPolicy, root] = alphazero.mcts_search(net, state, settings, root);
+    [~, visitPolicy, root] = alphazero.mcts_search(net, state, settings, root, ...
+        use_root_noise(settings));
     action = select_action(visitPolicy, state.ply, settings);
     sample = struct("state", alphazero.encode_state(state), ...
         "policy", visitPolicy, "legalMask", alphazero.legal_action_mask(state), ...
@@ -31,6 +32,10 @@ while true
     end
     root = root.Children{edge};
     state = root.State;
+end
+
+function enabled = use_root_noise(settings)
+enabled = isfield(settings, "selfPlayRootNoise") && settings.selfPlayRootNoise;
 end
 
 function id = scenario_id(position)

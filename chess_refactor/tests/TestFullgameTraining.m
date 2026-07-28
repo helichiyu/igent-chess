@@ -18,7 +18,7 @@ classdef TestFullgameTraining < matlab.unittest.TestCase
             testCase.verifyFalse(alphazero.game_state(state).isOver);
         end
 
-        function fullgameDrawReceivesPenalty(testCase)
+        function fullgameDrawHasZeroValue(testCase)
             settings = alphazero.fullgame_preset("smoke");
             settings.useGPU = false;
             settings.maxPlies = 1;
@@ -26,7 +26,33 @@ classdef TestFullgameTraining < matlab.unittest.TestCase
             [samples, outcome] = alphazero.self_play( ...
                 alphazero.create_fullgame_network(settings), scenario, settings);
             testCase.verifyEqual(outcome.result, "max_plies");
-            testCase.verifyEqual([samples.value], single(settings.drawValue));
+            testCase.verifyEqual([samples.value], single(0));
+        end
+
+        function selfPlayAddsRootExplorationNoise(testCase)
+            settings = alphazero.fullgame_preset("smoke");
+            settings.useGPU = false;
+            settings.mctsSimulations = 1;
+            state = alphazero.new_state(xiangqi.new_board(), 1, settings.maxPlies);
+            net = alphazero.create_fullgame_network(settings);
+            rng(10);
+            [~, ~, deterministicRoot] = alphazero.mcts_search(net, state, settings);
+            rng(10);
+            [~, ~, noisyRoot] = alphazero.mcts_search(net, state, settings, [], true);
+            testCase.verifyNotEqual(noisyRoot.Priors, deterministicRoot.Priors);
+            testCase.verifyLessThan(abs(double(sum(noisyRoot.Priors)) - 1), 1e-6);
+        end
+
+        function allDrawEvaluationDoesNotPromote(testCase)
+            settings = alphazero.fullgame_preset("smoke");
+            settings.useGPU = false;
+            settings.maxPlies = 1;
+            settings.evaluationGamesPerPosition = 1;
+            scenario = alphazero.opening_scenarios();
+            net = alphazero.create_fullgame_network(settings);
+            result = alphazero.evaluate_models(net, net, scenario, settings);
+            testCase.verifyEqual(result.score, 0.5);
+            testCase.verifyFalse(result.promoted);
         end
 
         function incompatibleCheckpointIsRejected(testCase)
@@ -51,15 +77,16 @@ classdef TestFullgameTraining < matlab.unittest.TestCase
         end
 
         function unifiedMoveIsLegal(testCase)
-            [net, metadata, settings] = alphazero.load_unified_model();
+            settings = alphazero.fullgame_config();
             settings.useGPU = false;
             settings.mctsSimulations = 1;
+            net = alphazero.create_fullgame_network(settings);
             board = xiangqi.new_board();
             counts = containers.Map("KeyType", "char", "ValueType", "double");
             counts(char(xiangqi.position_key(board, 1))) = 1;
             move = alphazero.select_unified_move(net, board, 1, counts, 0, settings);
             testCase.verifyTrue(any(ismember(xiangqi.legal_moves(board, 1), move, "rows")));
-            testCase.verifyEqual(string(metadata.networkVersion), ...
+            testCase.verifyEqual(string(settings.networkVersion), ...
                 alphazero.fullgame_network_version());
         end
 

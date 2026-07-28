@@ -8,21 +8,23 @@ switch lower(string(name))
         settings.maxPlies = 20;
         settings.trainingStepsPerIteration = 1;
         settings.evaluationGamesPerPosition = 1;
+        settings.promotionScore = 0.55;
+        settings.scenarioPromotionThresholds = struct("default", 0.55);
     case "short"
         settings.iterations = 2;
-        settings.mctsSimulations = 8;
+        settings.mctsSimulations = 32;
         settings.selfPlayGamesPerIteration = 2;
         settings.maxPlies = 120;
         settings.trainingStepsPerIteration = 10;
     case "medium"
         settings.iterations = 10;
-        settings.mctsSimulations = 16;
+        settings.mctsSimulations = 64;
         settings.selfPlayGamesPerIteration = 4;
         settings.maxPlies = 200;
         settings.trainingStepsPerIteration = 20;
     case "overnight"
         settings.iterations = 30;
-        settings.mctsSimulations = 32;
+        settings.mctsSimulations = 64;
         settings.selfPlayGamesPerIteration = 8;
         settings.maxPlies = 300;
         settings.trainingStepsPerIteration = 40;
