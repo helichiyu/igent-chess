@@ -18,6 +18,17 @@ classdef TestFullgameTraining < matlab.unittest.TestCase
             testCase.verifyFalse(alphazero.game_state(state).isOver);
         end
 
+        function fullgameDrawReceivesPenalty(testCase)
+            settings = alphazero.fullgame_preset("smoke");
+            settings.useGPU = false;
+            settings.maxPlies = 1;
+            scenario = alphazero.opening_scenarios();
+            [samples, outcome] = alphazero.self_play( ...
+                alphazero.create_fullgame_network(settings), scenario, settings);
+            testCase.verifyEqual(outcome.result, "max_plies");
+            testCase.verifyEqual([samples.value], single(settings.drawValue));
+        end
+
         function incompatibleCheckpointIsRejected(testCase)
             filePath = fullfile(tempdir, "alphazero_old_network_test.mat");
             cleanup = onCleanup(@()delete_if_present(filePath)); %#ok<NASGU>

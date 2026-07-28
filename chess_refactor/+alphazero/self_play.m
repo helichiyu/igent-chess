@@ -43,12 +43,20 @@ end
 
 for index = 1:numel(samples)
     if outcome.winner == 0
-        samples(index).value = single(0);
+        samples(index).value = single(draw_value(settings));
     elseif outcome.winner == samples(index).player
         samples(index).value = single(1);
     else
         samples(index).value = single(-1);
     end
+end
+
+function value = draw_value(settings)
+if isfield(settings, "drawValue")
+    value = settings.drawValue;
+else
+    value = 0;
+end
 end
 metrics = struct("scenarioId", scenario_id(position), "plies", state.ply, ...
     "result", outcome.result, "winner", outcome.winner, ...
