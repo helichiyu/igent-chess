@@ -55,6 +55,11 @@ classdef TestFullgameTraining < matlab.unittest.TestCase
             testCase.verifyFalse(result.promoted);
         end
 
+        function defaultEvaluationPlaysOncePerSide(testCase)
+            settings = alphazero.fullgame_config();
+            testCase.verifyEqual(settings.evaluationGamesPerPosition, 1);
+        end
+
         function incompatibleCheckpointIsRejected(testCase)
             filePath = fullfile(tempdir, "alphazero_old_network_test.mat");
             cleanup = onCleanup(@()delete_if_present(filePath)); %#ok<NASGU>
